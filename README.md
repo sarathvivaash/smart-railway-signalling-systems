@@ -9,4 +9,9 @@ Dynamic signaling through LEDs (Green, Blue, Red) controls track safety in real 
 - Dynamic LED signaling (Safe / Caution / Stop)  
 - Low-cost and scalable for basic railway traffic management
 
-- 
+📋 Hardware Used  
+- Arduino Uno  
+- IR Sensors  
+- Ultrasonic Sensors (HC-SR04)  
+- LEDs (Red, Blue, Green)  
+- Power Supply (5V)
