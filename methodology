@@ -1,0 +1,14 @@
+Sensor Placement and Setup
+Two IR sensors are placed near the entry point of each track to detect the presence of a train.
+Two Ultrasonic sensors are placed after the IR sensors along the tracks to measure when the train passes, which allows us to estimate its speed.
+Six LEDs (2 Red, 2 Blue, 2 Green) are used as signaling indicators for two tracks, one set for each track.
+
+Train Detection and Speed Calculation
+When a train passes the IR sensor, a timer is triggered.
+As the train moves past the Ultrasonic sensor, the timer stops.
+Using the time interval and the fixed distance between the two sensors, the speed of the train is calculated.
+
+LED Signaling Logic
+Green LED (Safe to Proceed): If a train passes on a track and the adjacent track is either empty or the approaching train is far and slow, a green signal is given indicating safe passage.
+Blue LED (Caution – Slow Down): If a train is currently on one track and another train is detected moving slowly on the adjacent track, the system shows a blue LED on the second track, indicating the train should slow down to avoid potential collision.
+Red LED (Stop – Collision Risk): If a train is already on one track and another train is approaching at high speed on the adjacent track, a red LED glows on the second track, indicating the train must stop to avoid a collision.
