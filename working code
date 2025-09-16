@@ -1,0 +1,167 @@
+#define IR_A 2
+#define IR_B 3
+
+#define US_TRIG_A 4
+#define US_ECHO_A 5
+#define US_TRIG_B 6
+#define US_ECHO_B 7
+
+#define LED_A_RED 8
+#define LED_A_YELLOW 9
+#define LED_A_GREEN 10
+#define LED_B_RED 11
+#define LED_B_YELLOW 12
+#define LED_B_GREEN 13
+
+bool calcA = false, calcB = false;
+bool measuringA = false, measuringB = false;
+
+unsigned long startA, endA, startB, endB;
+float speedA = -1, speedB = -1;
+bool speedADetected = false, speedBDetected = false;
+
+const float sensorDistance = 30.0; // in cm
+const float thresholdDistance = 7.0; // Trigger distance for speed measurement
+
+void setup() {
+  Serial.begin(9600);
+
+  pinMode(IR_A, INPUT_PULLUP);
+  pinMode(IR_B, INPUT_PULLUP);
+
+  attachInterrupt(digitalPinToInterrupt(IR_A), triggerA, FALLING);
+  attachInterrupt(digitalPinToInterrupt(IR_B), triggerB, FALLING);
+
+  pinMode(US_TRIG_A, OUTPUT);
+  pinMode(US_ECHO_A, INPUT);
+  pinMode(US_TRIG_B, OUTPUT);
+  pinMode(US_ECHO_B, INPUT);
+
+for (int i = 8; i <= 13; i++) pinMode(i, OUTPUT);
+  allSignalsOff();
+
+  Serial.println("System Ready.");
+}
+
+void loop() {
+
+  // TRACK A speed measurement
+  if (calcA && !measuringA) {
+    float d = getDistance(US_TRIG_A, US_ECHO_A);
+    if (d <= thresholdDistance & (d > 2.0)) {
+      startA = millis();
+      measuringA = true;
+      Serial.println("Track A: Timer started");
+    }
+  }
+  if (calcA && measuringA) {
+    float d = getDistance(US_TRIG_A, US_ECHO_A);
+    if (d > thresholdDistance) {
+      endA = millis();
+      speedA = calculateSpeed(startA, endA);
+      speedADetected = true;
+      Serial.print("Track A Speed: ");
+      Serial.print(speedA, 2);
+      Serial.println(" m/s");
+      measuringA = false;
+      calcA = false;
+      detachInterrupt(digitalPinToInterrupt(IR_A));
+      updateSignals();
+    }
+  }
+// TRACK B speed measurement
+  if (calcB && !measuringB) {
+    float d = getDistance(US_TRIG_B, US_ECHO_B);
+    if (d <= thresholdDistance & (d > 2.0)) {
+      startB = millis();
+      measuringB = true;
+      Serial.println("Track B: Timer started");
+    }
+  }
+  if (calcB && measuringB) {
+    float d = getDistance(US_TRIG_B, US_ECHO_B);
+    if (d > thresholdDistance) {
+      endB = millis();
+      speedB = calculateSpeed(startB, endB);
+      speedBDetected = true;
+      Serial.print("Track B Speed: ");
+      Serial.print(speedB, 2);
+      Serial.println(" m/s");
+      measuringB = false;
+      calcB = false;
+      detachInterrupt(digitalPinToInterrupt(IR_B));
+      updateSignals();
+    }
+  }
+
+  delay(100);
+}
+
+void triggerA() {
+  calcA = true;
+  Serial.println("Train A triggered");
+}
+void triggerB() {
+  calcB = true;
+  Serial.println("Train B triggered");
+}
+float calculateSpeed(unsigned long startTime, unsigned long endTime) {
+  float timeSec = (endTime - startTime) / 1000.0;
+  if (timeSec == 0) return 0;
+  return (sensorDistance / 100.0) / timeSec; // Convert to m/s
+}
+
+float getDistance(int trig, int echo) {
+  digitalWrite(trig, LOW); delayMicroseconds(2);
+  digitalWrite(trig, HIGH); delayMicroseconds(10);
+  digitalWrite(trig, LOW);
+  long duration = pulseIn(echo, HIGH, 30000);
+  return duration * 0.034 / 2;
+}
+
+void allSignalsOff() {
+  for (int i = 8; i <= 13; i++) digitalWrite(i, LOW);
+}
+
+void updateSignals() {
+  allSignalsOff();
+
+  if (speedADetected && !speedBDetected) {
+    digitalWrite(LED_A_GREEN, HIGH);
+    Serial.println("Signal A: GREEN (only A detected)");
+  } else if (!speedADetected && speedBDetected) {
+    digitalWrite(LED_B_GREEN, HIGH);
+    Serial.println("Signal B: GREEN (only B detected)");
+  } else if (speedADetected && speedBDetected) {
+    float diff = abs(speedA - speedB);
+
+    if (speedA > speedB) {
+      if (diff > 0.5) {
+        digitalWrite(LED_A_GREEN, HIGH);
+        digitalWrite(LED_B_YELLOW, HIGH);
+        Serial.println("A is much faster → A: GREEN, B: YELLOW");
+      } else {
+        digitalWrite(LED_A_GREEN, HIGH);
+        digitalWrite(LED_B_RED, HIGH);
+        Serial.println("A slightly faster → A: GREEN, B: RED");
+      }
+} else if (speedB > speedA) {
+      if (diff > 0.5) {
+        digitalWrite(LED_B_GREEN, HIGH);
+        digitalWrite(LED_A_YELLOW, HIGH);
+        Serial.println("B is much faster → B: GREEN, A: YELLOW");
+      } else {
+        digitalWrite(LED_B_GREEN, HIGH);
+        digitalWrite(LED_A_RED, HIGH);
+        Serial.println("B slightly faster → B: GREEN, A: RED");
+      }
+    } else {
+      // same speed → prioritize A
+      digitalWrite(LED_A_GREEN, HIGH);
+      digitalWrite(LED_B_RED, HIGH);
+      Serial.println("Same speed → A has priority → A: GREEN, B: RED");
+    }
+  }
+}
+
+
