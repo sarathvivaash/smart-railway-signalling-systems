@@ -1,0 +1,25 @@
+1)Initialize all components:
+Set up IR sensors with interrupts, ultrasonic sensors, and LEDs
+Turn all signal LEDs off and prepare serial communication.
+2)Detect train entry via IR sensor:
+On falling edge of IR_A or IR_B, set a flag (calcA or calcB) to start monitoring distance using the respective ultrasonic sensor.
+3)Start timing when train reaches ultrasonic sensor:
+Continuously measure distance.
+When distance ≤ thresholdDistance (7 cm) and > 2 cm, record startTime and begin timing.
+Stop timing when train passes ultrasonic sensor.
+When distance > thresholdDistance, record endTime.
+Calculate train speed using speed = distance / time.
+4)Repeat for both tracks:
+Complete speed measurement independently for Track A and Track B using the same logic.
+Compare speeds and determine priority:
+5)If both speeds are available:
+Compute absolute speed difference.
+Use thresholds to decide which train gets priority (Green), and assign Red or Yellow to the other accordingly.
+6)Update signal lights accordingly:
+Set LED states (Green, Yellow, Red) for both tracks based on the decision.
+Print the results to the serial monitor.
+
+Formulae used:
+speed = (sensorDistance in meters) / (time in seconds)
+
+speed = 0.3 / ((endTime - startTime) / 1000.0) = 300 / (endTime - startTime)   [in m/s]
